@@ -1,11 +1,14 @@
 import numpy as np
+from sympy import GF, Matrix
 
 from random import randint
 from math import factorial, log
 
 from LinearCode import LinearCode
 from utils import gaussjordan
-
+from mathutils import GF2Matrix
+import sys
+np.set_printoptions(threshold=sys.maxsize)
 
 def combinations(n, k):
     # Simple (n, k) combinations calculation
@@ -66,8 +69,18 @@ class McEliece:
                 
         # McEliece keys
         self.public_key = ((self.S @ code.getG() @ self.P % 2), self.t)
+        Gp = GF2Matrix(self.S @ code.getG() @ self.P % 2)
+        Hp_T, nullity = Gp.nullspace()
+        self.Hp = GF2Matrix(Hp_T.T()[:nullity])
+        
+        with open("check_matrix.txt", "w+") as f:
+            for row in self.Hp.to_numpy():
+                for x in row:
+                    f.write(str(x))
+                f.write('\n')
+
         self.private_key = (self.S, code.getG(), self.P)
-                    
+
     @classmethod 
     def from_linear_code(cls, code: LinearCode, t: int):
         k, n = code.getG().shape
@@ -88,9 +101,15 @@ class McEliece:
         z = [1 for _ in range(errors_num)] + [0 for _  in range(self.n - errors_num)]
         z = np.array(z, dtype=int)
         np.random.shuffle(z)
+        with open("error_vector.txt", "w+") as f:
+            for x in z:
+                f.write(str(x))
 
         res = ((word @ self.public_key[0] % 2) + z) % 2
             
+        with open("codeword.txt", "w+") as f:
+            for x in res:
+                f.write(str(x))
         return res
     
     def decrypt(self, codeword):
